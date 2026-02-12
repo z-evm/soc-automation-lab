@@ -79,3 +79,22 @@ $FilteredSecurity | ForEach-Object {
         Parent      = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "ParentProcessName" }).'#text'
     }
 } | Format-Table -AutoSize
+
+# Unified Result Logic
+$SysmonFound = $Filtered.Count -gt 0
+$SecurityFound = $FilteredSecurity.Count -gt 0
+
+Write-Host ""
+Write-Host "Validation Summary"
+Write-Host "------------------"
+Write-Host "Sysmon Found: $SysmonFound"
+Write-Host "Security Found: $SecurityFound"
+
+if ($SysmonFound -or $SecurityFound) {
+    Write-Host "Overall Result: PROCESS OBSERVED"
+    exit 0
+}
+else {
+    Write-Host "Overall Result: PROCESS NOT OBSERVED"
+    exit 3
+}
