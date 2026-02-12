@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.0
+# Version: 1.2
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 
 param (
@@ -116,10 +116,18 @@ if (-not $Quiet) {
 }
 
 if ($SysmonFound -or $SecurityFound) {
-    Write-Host "Overall Result: PROCESS OBSERVED"
+
+    if (-not $Quiet) {
+        Write-Host "Overall Result: PROCESS OBSERVED"
+    }
+
     exit 0
 }
 else {
-    Write-Host "Overall Result: PROCESS NOT OBSERVED"
+
+    if (-not $Quiet) {
+        Write-Host "Overall Result: PROCESS NOT OBSERVED"
+    }
+
     exit 3
 }
