@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.3
+# Version: 1.4
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 
 param (
@@ -13,8 +13,15 @@ param (
 
     [switch]$Quiet,
 
-    [string]$ExportJson
+    [string]$ExportJson,
+
+    [switch]$ExportEvidence
 )
+
+if ($ExportEvidence -and $ExportJson) {
+    Write-Host "ERROR: Use either -ExportJson or -ExportEvidence, not both."
+    exit 4
+}
 
 $StartTime = (Get-Date).AddMinutes(-$MinutesBack)
 
@@ -58,7 +65,7 @@ if ($LogSource -eq "Sysmon" -or $LogSource -eq "Both") {
         Write-Host "------------------"
         Write-Host "Filtered Count: $($Filtered.Count)"
 
-    $Filtered | Select-Object `
+        $Filtered | Select-Object `
         TimeCreated,
         @{Name="Image";Expression={$_.Properties[4].Value}},
         @{Name="CommandLine";Expression={$_.Properties[10].Value}},
@@ -83,7 +90,7 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
     $NormalizedSecurity = $SecurityEvents | ForEach-Object {
         $xml = [xml]$_.ToXml()
         [PSCustomObject]@{
-            TimeCreated = $_.TimeCreated
+            TimeCreated = $_.TimeCreated.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
             NewProcess  = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "NewProcessName" }).'#text'
             User        = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "SubjectUserName" }).'#text'
             Parent      = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "ParentProcessName" }).'#text'
@@ -111,7 +118,7 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
 
 $NormalizedSysmon = $Filtered | ForEach-Object {
     [PSCustomObject]@{
-        TimeCreated = $_.TimeCreated
+        TimeCreated = $_.TimeCreated.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         Image       = $_.Properties[4].Value
         CommandLine = $_.Properties[10].Value
         User        = $_.Properties[12].Value
@@ -123,7 +130,7 @@ $NormalizedSecurity = $FilteredSecurity
 
 $ResultObject = [PSCustomObject]@{
     Metadata = @{
-        Timestamp     = Get-Date
+        Timestamp     = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         ProcessName   = $ProcessName
         MinutesBack   = $MinutesBack
         LogSource     = $LogSource
@@ -134,6 +141,18 @@ $ResultObject = [PSCustomObject]@{
     }
     SysmonEvents   = $NormalizedSysmon
     SecurityEvents = $NormalizedSecurity
+}
+
+if ($ExportEvidence) {
+
+    $timestamp = (Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")
+    $basePath = Join-Path -Path (Get-Location) -ChildPath "evidence"
+    $processPath = Join-Path -Path $basePath -ChildPath $ProcessName
+    $finalPath = Join-Path -Path $processPath -ChildPath $timestamp
+
+    New-Item -ItemType Directory -Path $finalPath -Force | Out-Null
+
+    $ExportJson = Join-Path -Path $finalPath -ChildPath "process-validation.json"
 }
 
 
