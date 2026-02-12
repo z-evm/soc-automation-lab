@@ -1,5 +1,5 @@
 # Validate-Sysmon.ps1
-# Version: 0.3
+# Version: 0.4
 # Purpose: Validate Sysmon Event ID 1 within last 10 minutes and filter by process name
 
 param (
@@ -51,3 +51,31 @@ if ($Filtered.Count -eq 0) {
 }
 
 Write-Host "Process '$ProcessName' FOUND in time window."
+
+# Retrieve Security 4688 events
+$SecurityEvents = Get-WinEvent -FilterHashtable @{
+    LogName   = "Security"
+    Id        = 4688
+    StartTime = $StartTime
+} -ErrorAction SilentlyContinue
+
+$FilteredSecurity = $SecurityEvents | Where-Object {
+    $xml = [xml]$_.ToXml()
+    ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "NewProcessName" }).'#text' -like "*$ProcessName*"
+}
+
+Write-Host ""
+Write-Host "Security Log (4688) Validation"
+Write-Host "Total Security Events: $($SecurityEvents.Count)"
+Write-Host "Filtered Security Count: $($FilteredSecurity.Count)"
+Write-Host "----------------------------------------"
+
+$FilteredSecurity | ForEach-Object {
+    $xml = [xml]$_.ToXml()
+    [PSCustomObject]@{
+        TimeCreated = $_.TimeCreated
+        NewProcess  = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "NewProcessName" }).'#text'
+        User        = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "SubjectUserName" }).'#text'
+        Parent      = ($xml.Event.EventData.Data | Where-Object { $_.Name -eq "ParentProcessName" }).'#text'
+    }
+} | Format-Table -AutoSize
