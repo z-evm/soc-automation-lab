@@ -9,7 +9,9 @@ param (
     [int]$MinutesBack = 10,
 
     [ValidateSet("Sysmon","Security","Both")]
-    [string]$LogSource = "Both"
+    [string]$LogSource = "Both",
+
+    [switch]$Quiet
 )
 
 $StartTime = (Get-Date).AddMinutes(-$MinutesBack)
@@ -17,12 +19,14 @@ $StartTime = (Get-Date).AddMinutes(-$MinutesBack)
 $SysmonFound = $false
 $SecurityFound = $false
 
-Write-Host "========================================"
-Write-Host "Process Validation Engine"
-Write-Host "Process: $ProcessName"
-Write-Host "Time Window: Last $MinutesBack Minutes"
-Write-Host "Log Source: $LogSource"
-Write-Host "========================================"
+if (-not $Quiet) {
+    Write-Host "========================================"
+    Write-Host "Process Validation Engine"
+    Write-Host "Process: $ProcessName"
+    Write-Host "Time Window: Last $MinutesBack Minutes"
+    Write-Host "Log Source: $LogSource"
+    Write-Host "========================================"
+}
 
 # -----------------------------
 # SYS MON VALIDATION
@@ -43,10 +47,11 @@ if ($LogSource -eq "Sysmon" -or $LogSource -eq "Both") {
         $SysmonFound = $true
     }
 
-    Write-Host ""
-    Write-Host "Sysmon Validation"
-    Write-Host "------------------"
-    Write-Host "Filtered Count: $($Filtered.Count)"
+    if (-not $Quiet) {
+        Write-Host ""
+        Write-Host "Sysmon Validation"
+        Write-Host "------------------"
+        Write-Host "Filtered Count: $($Filtered.Count)"
 
     $Filtered | Select-Object `
         TimeCreated,
@@ -55,6 +60,7 @@ if ($LogSource -eq "Sysmon" -or $LogSource -eq "Both") {
         @{Name="User";Expression={$_.Properties[12].Value}},
         @{Name="ParentImage";Expression={$_.Properties[20].Value}} |
         Format-Table -AutoSize
+    }
 }
 
 # -----------------------------
@@ -88,22 +94,26 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
         $SecurityFound = $true
     }
 
-    Write-Host ""
-    Write-Host "Security 4688 Validation"
-    Write-Host "-------------------------"
-    Write-Host "Filtered Count: $($FilteredSecurity.Count)"
+    if(-not $Quiet) {
+        Write-Host ""
+        Write-Host "Security 4688 Validation"
+        Write-Host "-------------------------"
+        Write-Host "Filtered Count: $($FilteredSecurity.Count)"
 
-    $FilteredSecurity | Format-Table -AutoSize
+        $FilteredSecurity | Format-Table -AutoSize
+    }
 }
 
 # -----------------------------
 # UNIFIED RESULT
 # -----------------------------
-Write-Host ""
-Write-Host "Validation Summary"
-Write-Host "------------------"
-Write-Host "Sysmon Found: $SysmonFound"
-Write-Host "Security Found: $SecurityFound"
+if (-not $Quiet) {
+    Write-Host ""
+    Write-Host "Validation Summary"
+    Write-Host "------------------"
+    Write-Host "Sysmon Found: $SysmonFound"
+    Write-Host "Security Found: $SecurityFound"
+}
 
 if ($SysmonFound -or $SecurityFound) {
     Write-Host "Overall Result: PROCESS OBSERVED"
