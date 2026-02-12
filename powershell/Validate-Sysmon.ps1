@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.2
+# Version: 1.3
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 
 param (
@@ -11,13 +11,18 @@ param (
     [ValidateSet("Sysmon","Security","Both")]
     [string]$LogSource = "Both",
 
-    [switch]$Quiet
+    [switch]$Quiet,
+
+    [string]$ExportJson
 )
 
 $StartTime = (Get-Date).AddMinutes(-$MinutesBack)
 
 $SysmonFound = $false
 $SecurityFound = $false
+
+$Filtered = @()
+$FilteredSecurity = @()
 
 if (-not $Quiet) {
     Write-Host "========================================"
@@ -101,6 +106,49 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
         Write-Host "Filtered Count: $($FilteredSecurity.Count)"
 
         $FilteredSecurity | Format-Table -AutoSize
+    }
+}
+
+$NormalizedSysmon = $Filtered | ForEach-Object {
+    [PSCustomObject]@{
+        TimeCreated = $_.TimeCreated
+        Image       = $_.Properties[4].Value
+        CommandLine = $_.Properties[10].Value
+        User        = $_.Properties[12].Value
+        ParentImage = $_.Properties[20].Value
+    }
+}
+
+$NormalizedSecurity = $FilteredSecurity
+
+$ResultObject = [PSCustomObject]@{
+    Metadata = @{
+        Timestamp     = Get-Date
+        ProcessName   = $ProcessName
+        MinutesBack   = $MinutesBack
+        LogSource     = $LogSource
+    }
+    Summary = @{
+        SysmonFound   = $SysmonFound
+        SecurityFound = $SecurityFound
+    }
+    SysmonEvents   = $NormalizedSysmon
+    SecurityEvents = $NormalizedSecurity
+}
+
+
+if ($ExportJson) {
+    try {
+        $ResultObject | ConvertTo-Json -Depth 5 | Out-File -FilePath $ExportJson -Encoding UTF8
+        $hash = Get-FileHash $ExportJson -Algorithm SHA256
+
+        if (-not $Quiet) {
+            Write-Host "JSON evidence exported to: $ExportJson"
+            Write-Host "Evidence SHA256: $($hash.Hash)"
+        }
+    }
+    catch {
+        Write-Host "ERROR: Failed to export JSON."
     }
 }
 
