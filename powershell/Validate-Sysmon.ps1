@@ -2,8 +2,17 @@
 # Version: 0.3
 # Purpose: Validate Sysmon Event ID 1 within last 10 minutes and filter by process name
 
-$TargetProcess = "notepad.exe"  # Change per test
-$StartTime = (Get-Date).AddMinutes(-10)
+param (
+    [string]$ProcessName,
+    [int]$MinutesBack = 10
+)
+
+if (-not $ProcessName) {
+    Write-Host "ERROR: You must provide -ProcessName"
+    exit
+}
+
+$StartTime = (Get-Date).AddMinutes(-$MinutesBack)
 
 $Events = Get-WinEvent -FilterHashtable @{
     LogName   = "Microsoft-Windows-Sysmon/Operational"
@@ -11,9 +20,9 @@ $Events = Get-WinEvent -FilterHashtable @{
     StartTime = $StartTime
 } -ErrorAction SilentlyContinue
 
-# Filter by Image field (index 4 in your environment)
+# Filter by Image field
 $Filtered = $Events | Where-Object {
-    $_.Properties[4].Value -like "*$TargetProcess*"
+    $_.Properties[4].Value -like "*$ProcessName*"
 }
 
 Write-Host "----------------------------------------"
@@ -30,3 +39,15 @@ $Filtered | Select-Object `
     @{Name="User";Expression={$_.Properties[12].Value}},
     @{Name="ParentImage";Expression={$_.Properties[20].Value}} |
     Format-Table -AutoSize
+
+if (-not $Events) {
+    Write-Host "No Sysmon Event ID 1 events found in time window."
+    exit 1
+}
+
+if ($Filtered.Count -eq 0) {
+    Write-Host "Process '$ProcessName' NOT FOUND in time window."
+    exit 2
+}
+
+Write-Host "Process '$ProcessName' FOUND in time window."
