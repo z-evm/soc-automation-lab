@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.4
+# Version: 1.5
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 
 param (
@@ -153,6 +153,8 @@ if ($ExportEvidence) {
     New-Item -ItemType Directory -Path $finalPath -Force | Out-Null
 
     $ExportJson = Join-Path -Path $finalPath -ChildPath "process-validation.json"
+
+    $CreatedEvidencePath = $finalPath
 }
 
 
@@ -182,19 +184,25 @@ if (-not $Quiet) {
     Write-Host "Security Found: $SecurityFound"
 }
 
+$ExitCode = 3
 if ($SysmonFound -or $SecurityFound) {
+    $ExitCode = 0
 
     if (-not $Quiet) {
         Write-Host "Overall Result: PROCESS OBSERVED"
     }
-
-    exit 0
 }
 else {
-
     if (-not $Quiet) {
         Write-Host "Overall Result: PROCESS NOT OBSERVED"
     }
-
-    exit 3
 }
+
+# If running orchestration mode (ExportEvidence + Quiet),
+# return only the created evidence path
+if ($ExportEvidence -and $Quiet -and $CreatedEvidencePath) {
+    Write-Output $CreatedEvidencePath
+}
+
+exit $ExitCode
+
