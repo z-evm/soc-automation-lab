@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.6
+# Version: 1.7
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 
 param (
