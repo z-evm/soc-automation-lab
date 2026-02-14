@@ -1,48 +1,156 @@
 #!/bin/bash
 # run-validation.sh
-# Version: 0.3
+# Version: 0.4
 
-PROCESS_NAME="$1"
+set -euo pipefail
+IFS=$'\n\t'
 
-if [ -z "$PROCESS_NAME" ]; then
-    echo "Usage: ./run_validation.sh <process_name>"
+############################################
+# Argument Handling
+############################################
+
+if [ $# -lt 1 ]; then
+    echo "Usage: ./run_validation.sh <process_name> [case_id]"
     exit 1
 fi
 
-WINDOWS_HOST="Zach@10.0.0.20"
+PROCESS_NAME="$1"
+CASE_ID="${2:-$(date -u +%Y%m%d_%H%M%S)}"
 
-CASE_TIMESTAMP=$(date -u +%Y-%m-%d_%H-%M-%S)
-CASE_DIR="case_$CASE_TIMESTAMP"
+############################################
+# Configuration
+############################################
+
+WINDOWS_HOST="Zach@10.0.0.20"
+WINDOWS_SCRIPT_PATH='C:\Users\Zach\Desktop\Validate-Process.ps1'
+
+SSH_OPTS=(
+  -o BatchMode=yes
+  -o StrictHostKeyChecking=yes
+  -o ConnectTimeout=5
+)
+
+BASE_DIR="cases"
+CASE_DIR="$BASE_DIR/$CASE_ID"
 WINDOWS_DIR="$CASE_DIR/windows"
+LOG_FILE="$CASE_DIR/orchestration.log"
+
+############################################
+# Case Initialization
+############################################
+
+if [ -d "$CASE_DIR" ]; then
+    echo "[!] Case directory already exists: $CASE_DIR"
+    echo "[!] Refusing to overwrite existing case."
+    exit 10
+fi
 
 mkdir -p "$WINDOWS_DIR"
 
-echo "[*] Triggering remote validation..."
+log() {
+    echo "[$(date -Iseconds)] $1" | tee -a "$LOG_FILE"
+}
 
-REMOTE_PATH=$(ssh $WINDOWS_HOST \
-'powershell -ExecutionPolicy Bypass -File "C:\Users\Zach\Desktop\Validate-Process.ps1" -ProcessName '"$PROCESS_NAME"' -ExportEvidence -Quiet' | tr -d '\r')
+log "=== CASE START ==="
+log "Case ID: $CASE_ID"
+log "Process Name: $PROCESS_NAME"
+log "Target Host: $WINDOWS_HOST"
+log "Executed From: $(hostname)"
+log "User: $(whoami)"
 
+############################################
+# Metadata (Chain of Custody)
+############################################
+
+cat <<EOF > "$CASE_DIR/metadata.txt"
+Case ID: $CASE_ID
+Process: $PROCESS_NAME
+Target Host: 10.0.0.20
+Executed From: $(hostname)
+User: $(whoami)
+Timestamp (UTC): $(date -u -Iseconds)
+EOF
+
+############################################
+# Remote Validation Execution
+############################################
+
+log "Triggering remote validation..."
+
+REMOTE_COMMAND="powershell -ExecutionPolicy Bypass -File \"$WINDOWS_SCRIPT_PATH\" -ProcessName \"$PROCESS_NAME\" -ExportEvidence -Quiet"
+
+set +e
+REMOTE_PATH=$(ssh "${SSH_OPTS[@]}" "$WINDOWS_HOST" "$REMOTE_COMMAND" 2>/dev/null | tr -d '\r' | tail -n 1)
 EXIT_CODE=$?
+set -e
+
+log "Remote exit code: $EXIT_CODE"
+
+if [ "$EXIT_CODE" -ne 0 ]; then
+    log "Remote validation failed. Output:"
+    log "$REMOTE_PATH"
+    exit $EXIT_CODE
+fi
 
 if [ -z "$REMOTE_PATH" ]; then
-    echo "[!] No evidence path returned"
+    log "No evidence path returned from remote script."
     exit 2
 fi
 
-echo "[*] Remote evidence path:"
-printf '%s\n' "$REMOTE_PATH"
+log "Remote evidence path: $REMOTE_PATH"
 
+############################################
+# Evidence Retrieval
+############################################
+
+# Convert Windows path to SCP-compatible path
 SCP_PATH="/${REMOTE_PATH//\\//}"
 
-echo "[*] Pulling evidence..."
-scp -r $WINDOWS_HOST:"$SCP_PATH"/* "$WINDOWS_DIR"
+log "Pulling evidence via SCP..."
 
-if [ $? -ne 0 ]; then
-    echo "[!] SCP failed"
+set +e
+scp "${SSH_OPTS[@]}" -r "$WINDOWS_HOST":"$SCP_PATH"/* "$WINDOWS_DIR" >> "$LOG_FILE" 2>&1
+SCP_EXIT=$?
+set -e
+
+if [ "$SCP_EXIT" -ne 0 ]; then
+    log "SCP failed with exit code $SCP_EXIT"
     exit 5
 fi
 
-echo "[*] Done."
-echo "[*] Validation exit code: $EXIT_CODE"
+log "Evidence successfully retrieved."
+
+############################################
+# Evidence Validation
+############################################
+
+if [ -z "$(ls -A "$WINDOWS_DIR")" ]; then
+    log "Evidence directory is empty after SCP."
+    exit 6
+fi
+
+log "Evidence files present:"
+ls -1 "$WINDOWS_DIR" | tee -a "$LOG_FILE"
+
+############################################
+# Evidence Hashing
+############################################
+
+log "Generating SHA256 hashes..."
+
+for file in "$WINDOWS_DIR"/*; do
+    if [ -f "$file" ]; then
+        sha256sum "$file" >> "$CASE_DIR/evidence.hash"
+    fi
+done
+
+log "Hashes written to evidence.hash"
+
+############################################
+# Completion
+############################################
+
+log "=== CASE COMPLETE ==="
+log "Final exit code: $EXIT_CODE"
 
 exit $EXIT_CODE

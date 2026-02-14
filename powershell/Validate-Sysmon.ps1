@@ -1,6 +1,13 @@
 # Validate-Process.ps1
-# Version: 1.7
+# Version: 1.8
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
+# Author: Lab – SOC Validation Engine
+# Mode: Interactive / Orchestrated
+# Exit Codes:
+#   0 = Process observed
+#   3 = Process not observed
+#   4 = Parameter misuse
+#   5 = Export failure
 
 param (
     [Parameter(Mandatory=$true)]
@@ -18,10 +25,18 @@ param (
     [switch]$ExportEvidence
 )
 
+############################################
+# PHASE 1 — PARAMETER VALIDATION
+############################################
+
 if ($ExportEvidence -and $ExportJson) {
     Write-Host "ERROR: Use either -ExportJson or -ExportEvidence, not both."
     exit 4
 }
+
+############################################
+# PHASE 2 — INITIALIZATION
+############################################
 
 $StartTime = (Get-Date).AddMinutes(-$MinutesBack)
 
@@ -37,12 +52,14 @@ if (-not $Quiet) {
     Write-Host "Process: $ProcessName"
     Write-Host "Time Window: Last $MinutesBack Minutes"
     Write-Host "Log Source: $LogSource"
+    Write-Host "Execution Mode: $(if ($Quiet) { 'Orchestrated' } else { 'Interactive' })"
     Write-Host "========================================"
 }
 
-# -----------------------------
-# SYS MON VALIDATION
-# -----------------------------
+############################################
+# PHASE 3 — SYS MON VALIDATION
+############################################
+
 if ($LogSource -eq "Sysmon" -or $LogSource -eq "Both") {
 
     $Events = Get-WinEvent -FilterHashtable @{
@@ -75,9 +92,10 @@ if ($LogSource -eq "Sysmon" -or $LogSource -eq "Both") {
     }
 }
 
-# -----------------------------
-# SECURITY 4688 VALIDATION
-# -----------------------------
+############################################
+# PHASE 4 — SECURITY 4688 VALIDATION
+############################################
+
 if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
 
     $SecurityEvents = Get-WinEvent -FilterHashtable @{
@@ -97,7 +115,6 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
         }
     }
 
-    # Filter after normalization
     $FilteredSecurity = $NormalizedSecurity | Where-Object {
         $_.NewProcess -like "*$ProcessName*"
     }
@@ -116,6 +133,10 @@ if ($LogSource -eq "Security" -or $LogSource -eq "Both") {
     }
 }
 
+############################################
+# PHASE 5 — NORMALIZATION
+############################################
+
 $NormalizedSysmon = $Filtered | ForEach-Object {
     [PSCustomObject]@{
         TimeCreated = $_.TimeCreated.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
@@ -128,12 +149,17 @@ $NormalizedSysmon = $Filtered | ForEach-Object {
 
 $NormalizedSecurity = $FilteredSecurity
 
+############################################
+# PHASE 6 — RESULT OBJECT CONSTRUCTION
+############################################
+
 $ResultObject = [PSCustomObject]@{
     Metadata = @{
         Timestamp     = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
         ProcessName   = $ProcessName
         MinutesBack   = $MinutesBack
         LogSource     = $LogSource
+        Host          = $env:COMPUTERNAME
     }
     Summary = @{
         SysmonFound   = $SysmonFound
@@ -142,6 +168,10 @@ $ResultObject = [PSCustomObject]@{
     SysmonEvents   = $NormalizedSysmon
     SecurityEvents = $NormalizedSecurity
 }
+
+############################################
+# PHASE 7 — EVIDENCE EXPORT PREPARATION
+############################################
 
 if ($ExportEvidence) {
 
@@ -153,10 +183,12 @@ if ($ExportEvidence) {
     New-Item -ItemType Directory -Path $finalPath -Force | Out-Null
 
     $ExportJson = Join-Path -Path $finalPath -ChildPath "process-validation.json"
-
     $CreatedEvidencePath = $finalPath
 }
 
+############################################
+# PHASE 8 — JSON EXPORT + HASHING
+############################################
 
 if ($ExportJson) {
     try {
@@ -170,12 +202,14 @@ if ($ExportJson) {
     }
     catch {
         Write-Host "ERROR: Failed to export JSON."
+        exit 5
     }
 }
 
-# -----------------------------
-# UNIFIED RESULT
-# -----------------------------
+############################################
+# PHASE 9 — UNIFIED RESULT EVALUATION
+############################################
+
 if (-not $Quiet) {
     Write-Host ""
     Write-Host "Validation Summary"
@@ -185,9 +219,9 @@ if (-not $Quiet) {
 }
 
 $ExitCode = 3
+
 if ($SysmonFound -or $SecurityFound) {
     $ExitCode = 0
-
     if (-not $Quiet) {
         Write-Host "Overall Result: PROCESS OBSERVED"
     }
@@ -198,11 +232,15 @@ else {
     }
 }
 
+############################################
+# PHASE 10 — ORCHESTRATION OUTPUT
+############################################
+
 # If running orchestration mode (ExportEvidence + Quiet),
 # return only the created evidence path
+
 if ($ExportEvidence -and $Quiet -and $CreatedEvidencePath) {
     Write-Output $CreatedEvidencePath
 }
 
 exit $ExitCode
-
