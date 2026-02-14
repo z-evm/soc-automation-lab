@@ -132,17 +132,46 @@ fi
 log "Evidence files present:"
 ls -1 "$WINDOWS_DIR" | tee -a "$LOG_FILE"
 
+JSON_FILE="$WINDOWS_DIR/process-validation.json"
+
+if ! command -v jq >/dev/null 2>&1; then
+    log "jq not installed. Cannot validate JSON."
+    exit 20
+fi
+
+log "Validating JSON schema..."
+
+jq -e '
+  .Metadata.Timestamp and
+  .Metadata.ProcessName and
+  .Metadata.MinutesBack and
+  .Metadata.LogSource and
+  .Metadata.Host and
+  .Summary.SysmonFound != null and
+  .Summary.SecurityFound != null and
+  (.SysmonEvents | type == "array") and
+  (.SecurityEvents | type == "array")
+' "$JSON_FILE" > /dev/null
+
+if [ $? -ne 0 ]; then
+    log "JSON schema validation failed."
+    exit 21
+fi
+
+log "JSON schema validation passed."
+
 ############################################
 # Evidence Hashing
 ############################################
 
 log "Generating SHA256 hashes..."
 
-for file in "$WINDOWS_DIR"/*; do
-    if [ -f "$file" ]; then
-        sha256sum "$file" >> "$CASE_DIR/evidence.hash"
-    fi
-done
+(
+  cd "$CASE_DIR"
+  find windows -type f -print0 | while IFS= read -r -d '' file; do
+      sha256sum "$file"
+  done
+) > "$CASE_DIR/evidence.hash"
 
 log "Hashes written to evidence.hash"
 
