@@ -1,6 +1,6 @@
 #!/bin/bash
 # run-validation.sh
-# Version: 0.4
+# Version: 0.6
 
 set -euo pipefail
 IFS=$'\n\t'
@@ -119,6 +119,9 @@ if [ "$SCP_EXIT" -ne 0 ]; then
 fi
 
 log "Evidence successfully retrieved."
+
+SPLUNK_DIR="$CASE_DIR/splunk"
+mkdir -p "$SPLUNK_DIR"
 
 ############################################
 # Evidence Validation

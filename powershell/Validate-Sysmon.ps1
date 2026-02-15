@@ -1,5 +1,5 @@
 # Validate-Process.ps1
-# Version: 1.8
+# Version: 2.0
 # Purpose: Validate process creation across Sysmon (Event ID 1) and Security (Event ID 4688)
 # Author: Lab – SOC Validation Engine
 # Mode: Interactive / Orchestrated
