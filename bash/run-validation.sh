@@ -10,7 +10,7 @@ IFS=$'\n\t'
 ############################################
 
 if [ $# -lt 1 ]; then
-    echo "Usage: ./run_validation.sh <process_name> [case_id]"
+    echo "Usage: ./run-validation.sh <process_name> [case_id]"
     exit 1
 fi
 

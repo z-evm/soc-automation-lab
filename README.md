@@ -20,7 +20,7 @@ Automation supports analysis - it does not replace it.
 
 ## Components
 
-### Validate-Sysmon.ps1
+### Validate-Process.ps1
 Windows endpoint validation.
 
 - Queries Sysmon (Event ID 1) and Security (4688)
@@ -28,7 +28,7 @@ Windows endpoint validation.
 - Exports structured JSON
 - Controlled exit codes
 
-### run_validation.sh
+### run-validation.sh
 Linux orchestration script.
 
 - Executes remote validation via SSH  
