@@ -4,6 +4,7 @@
 
 set -euo pipefail
 IFS=$'\n\t'
+START_TIME=$(date +%s)
 
 ############################################
 # Argument Handling
@@ -184,5 +185,9 @@ log "Hashes written to evidence.hash"
 
 log "=== CASE COMPLETE ==="
 log "Final exit code: $EXIT_CODE"
+
+END_TIME=$(date +%s)
+DURATION=$((END_TIME - START_TIME))
+echo "Total runtime: $DURATION seconds" | tee -a "$LOG_FILE"
 
 exit $EXIT_CODE
