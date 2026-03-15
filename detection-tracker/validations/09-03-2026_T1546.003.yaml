@@ -1,5 +1,5 @@
 technique_id: T1546.003
-technique_name: Event Triggered Execution: Windows Service
+technique_name: Event Triggered Execution: Windows Management Instrumentation Event Subscription
 tactic: Persistence
 
 test_method: atomic_red_team

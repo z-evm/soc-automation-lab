@@ -1,5 +1,5 @@
 technique_id: T1053.005
-technique_name: Scheduled Task/Job
+technique_name: Scheduled Task/Job - Abuse of Windows Task Scheduler
 tactic: Execution
 
 test_method: atomic_red_team

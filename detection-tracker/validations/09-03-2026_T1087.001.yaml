@@ -1,5 +1,5 @@
 technique_id: T1087.001
-technique_name: Local Account Discovery
+technique_name: Account Discovery: Local Account
 tactic: Discovery
 
 test_method: atomic_red_team

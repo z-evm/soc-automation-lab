@@ -1,5 +1,5 @@
 technique_id: T1071.004
-technique_name: Application Layer Protocol
+technique_name: Application Layer Protocol (DNS)
 tactic: Command and Control
 
 test_method: atomic_red_team
