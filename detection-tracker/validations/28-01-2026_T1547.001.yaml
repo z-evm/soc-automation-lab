@@ -1,0 +1,14 @@
+technique_id: T1547.001
+technique_name: Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
+tactic: Persistence
+
+test_method: atomic_red_team
+
+telemetry_source: Sysmon
+telemetry:
+  - sysmon_13
+
+detection_outcome: host-only
+
+validated: true
+date_validated: 28-01-2026

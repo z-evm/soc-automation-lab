@@ -1,0 +1,14 @@
+technique_id: T1059.001
+technique_name: Command and Scripting Interpreter: PowerShell
+tactic: Execution
+
+test_method: atomic_red_team
+
+telemetry_source: Sysmon
+telemetry:
+  - sysmon_1
+
+detection_outcome: host-only
+
+validated: true
+date_validated: 25-01-2026

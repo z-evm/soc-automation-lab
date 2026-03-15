@@ -1,0 +1,14 @@
+technique_id: T1562.001
+technique_name: Impair Defenses: Disable or Modify Tools
+tactic: Defense Evasion
+
+test_method: atomic_red_team
+
+telemetry_source: Suricata
+telemetry:
+  - suricata_flow
+
+detection_outcome: flow-only
+
+validated: true
+date_validated: 25-01-2026

@@ -75,6 +75,6 @@ Each execution produces a reproducible, hashed case record.
 
 ## Outcome
 
-Reduces per-test workflow time from ~30–40 minutes to ~15 minutes while improving procedural consistency.
+Reduces per-test workflow time from ~15 minutes to ~2 minutes while improving procedural consistency.
 
 

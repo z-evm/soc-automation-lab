@@ -1,0 +1,14 @@
+technique_id: T1053.005
+technique_name: Scheduled Task/Job
+tactic: Execution
+
+test_method: atomic_red_team
+
+telemetry_source: Sysmon
+telemetry:
+  - sysmon_1
+
+detection_outcome: host-only
+
+validated: true
+date_validated: 09-03-2026

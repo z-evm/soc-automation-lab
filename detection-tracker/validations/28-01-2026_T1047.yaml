@@ -1,0 +1,14 @@
+technique_id: T1047
+technique_name: Windows Management Instrumentation
+tactic: Execution
+
+test_method: atomic_red_team
+
+telemetry_source: Sysmon
+telemetry:
+  - sysmon_1
+
+detection_outcome: host-only
+
+validated: true
+date_validated: 28-01-2026
