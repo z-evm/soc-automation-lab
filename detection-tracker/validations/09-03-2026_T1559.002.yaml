@@ -1,5 +1,5 @@
 technique_id: T1559.002 
-technique_name: Inter-Process Communication: Dynamic Data Exchange (DDE)
+technique_name: Inter-Process Communication - Dynamic Data Exchange (DDE)
 tactic: Execution
 
 test_method: atomic_red_team

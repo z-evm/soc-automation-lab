@@ -1,5 +1,5 @@
 technique_id: T1562.001
-technique_name: Impair Defenses: Disable or Modify Tools
+technique_name: Impair Defenses - Disable or Modify Tools
 tactic: Defense Evasion
 
 test_method: atomic_red_team

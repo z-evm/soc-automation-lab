@@ -1,5 +1,5 @@
 technique_id: T1547.001
-technique_name: Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
+technique_name: Boot or Logon Autostart Execution - Registry Run Keys / Startup Folder
 tactic: Persistence
 
 test_method: atomic_red_team

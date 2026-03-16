@@ -1,5 +1,5 @@
 technique_id: T1595.002
-technique_name: Active Scanning: Vulnerability Scanning
+technique_name: Active Scanning - Vulnerability Scanning
 tactic: Reconnaissance
 
 test_method: atomic_red_team
