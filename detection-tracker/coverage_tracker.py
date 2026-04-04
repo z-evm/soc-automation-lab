@@ -3,8 +3,7 @@ import yaml        # PyYAML library used to parse YAML files into Python data st
 
 # Directory containing the YAML validation records.
 # Each YAML file represents a validated ATT&CK technique observed in the lab.
-VALIDATIONS_DIR = "detection-tracker/validations"
-
+VALIDATIONS_DIR = os.path.join(os.path.dirname(__file__), "validations")
 
 def load_validations():
     """
@@ -39,31 +38,74 @@ def load_validations():
                 # Parse the YAML file into a Python dictionary
                 validation_data = yaml.safe_load(file)
 
-                # Use the MITRE ATT&CK technique ID as the dictionary key
-                # Example: "T1046", "T1059.001"
-                validations[validation_data["technique_id"]] = validation_data
+                technique_id = validation_data["technique_id"].strip()
+
+                if not technique_id:
+                    continue # or raise error
+
+                # Store the validation data in the dictionary, keyed by technique_id
+                validations[technique_id] = validation_data
 
     # Return the complete dataset of validation records
     return validations
 
+# Filter validated techniques
+def get_validated_techniques(validations):
+    return {
+        k: v for k, v in validations.items()
+        if v.get("validated") is True
+    }
+
+# Calculate validation coverage percentage
+def calculate_coverage(validations):
+    validated = get_validated_techniques(validations)
+
+    total_techniques = len(validations)
+    validation_count = len(validated)
+
+    tactics = {}
+    detection_outcomes = {}
+
+    for v in validated.values():
+        # --- TACTIC COUNT ---
+        tactic = v.get("tactic", "Unknown").strip()
+        tactics[tactic] = tactics.get(tactic, 0) + 1
+
+        # --- OUTCOME COUNT ---
+        outcome = v.get("detection_outcome", "unknown").strip()
+        detection_outcomes[outcome] = detection_outcomes.get(outcome, 0) + 1
+
+    coverage_percentage = (
+        (validation_count / total_techniques) * 100 
+        if total_techniques > 0 else 0
+    )
+    return {
+        "total_techniques": total_techniques,
+        "validated_techniques": validation_count,
+        "coverage_percentage": coverage_percentage,
+        "tactics": tactics,
+        "detection_outcomes": detection_outcomes,
+        "validated_data": validated
+    }
 
 # Standard Python entry point.
 # This block runs only when the script is executed directly
 # (not when imported as a module).
 if __name__ == "__main__":
 
-    # Load the validation dataset from YAML files
     validations = load_validations()
 
-    # Print a summary showing how many validation records were loaded
-    print(f"Loaded {len(validations)} validations.")
+    coverage = calculate_coverage(validations)
 
-    # Iterate through the dataset and print each technique
-    # validations.items() returns (key, value) pairs:
-    # key = technique_id
-    # value = YAML data dictionary
-    for validation_id, validation in validations.items():
+    print("\n=== Coverage Summary ===")
+    print(f"Total Techniques: {coverage['total_techniques']}")
+    print(f"Validated Techniques: {coverage['validated_techniques']}")
+    print(f"Coverage %: {coverage['coverage_percentage']:.2f}%")
 
-        # Print a readable summary for each technique
-        # technique_name comes from the YAML file fields
-        print(f"Validation ID: {validation_id}, Name: {validation['technique_name']}")
+    print("\n=== Coverage by Tactic ===")
+    for tactic, count in sorted(coverage["tactics"].items()):
+        print(f"{tactic}: {count}")
+
+    print("\n=== Detection Outcomes ===")
+    for outcome, count in sorted(coverage["detection_outcomes"].items()):
+        print(f"{outcome}: {count}")
