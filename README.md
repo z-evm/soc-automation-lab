@@ -1,8 +1,8 @@
-# SOC Automation Lab
+# Automation Lab
 
-Structured validation pipeline for SOC lab testing.
+Structured validation pipeline for lab testing.
 
-Standardises endpoint and network telemetry validation, Splunk ingestion confirmation, and artefact preservation for Atomic Red Team executions.
+Standardises endpoint and network telemetry validation, Splunk ingestion confirmation, and artefact preservation for manual and Atomic Red Team executions.
 
 ---
 
