@@ -2,7 +2,7 @@
 
 Structured validation pipeline for SOC lab testing.
 
-Standardizes endpoint and network telemetry validation, Splunk ingestion confirmation, and artifact preservation for Atomic Red Team executions.
+Standardises endpoint and network telemetry validation, Splunk ingestion confirmation, and artefact preservation for Atomic Red Team executions.
 
 ---
 
@@ -11,10 +11,10 @@ Standardizes endpoint and network telemetry validation, Splunk ingestion confirm
 Reduce repetitive analyst overhead while enforcing:
 
 - Consistent validation criteria  
-- Structured case artifacts  
+- Structured case artefacts  
 - Evidence integrity controls  
 
-Automation supports analysis - it does not replace it.
+Automation supports analysis – it does not replace it.
 
 ---
 
@@ -32,7 +32,7 @@ Windows endpoint validation.
 Linux orchestration script.
 
 - Executes remote validation via SSH  
-- Retrieves artifacts via SCP  
+- Retrieves artefacts via SCP  
 - Creates timestamped case directories  
 - Validates JSON structure (`jq`)  
 - Generates SHA256 hashes  
@@ -62,7 +62,7 @@ Each execution produces a reproducible, hashed case record.
 **Automated**
 - Endpoint validation
 - Network validation  
-- Artifact retrieval  
+- Artefact retrieval  
 - Schema checks  
 - Integrity hashing  
 

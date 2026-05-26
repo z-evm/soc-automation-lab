@@ -38,10 +38,16 @@ def load_validations():
                 # Parse the YAML file into a Python dictionary
                 validation_data = yaml.safe_load(file)
 
-                technique_id = validation_data["technique_id"].strip()
+                if not isinstance(validation_data, dict):
+                    continue # or raise error
+
+                technique_id = validation_data.get("technique_id", "").strip()
 
                 if not technique_id:
                     continue # or raise error
+
+                if technique_id in validations:
+                    print(f"Warning: duplicate technique_id detected: {technique_id}")
 
                 # Store the validation data in the dictionary, keyed by technique_id
                 validations[technique_id] = validation_data
